@@ -6,7 +6,7 @@ on:
   #pull_request:
   #  branches: [ main ]
   schedule:
-    - cron: '10 0,4,7,10,12,14 * * *'
+    - cron: '35 0,3,5,9,12,14 * * *'
   watch:
     types: started
   workflow_dispatch:
@@ -34,4 +34,8 @@ jobs:
           passwd='${{ secrets.PWD }}' 
           open_get_weather='${{ secrets.OPEN_GET_WEATHER }}'
           area='${{ secrets.AREA }}'
-          python3 main.py ${user} ${passwd} ${open_get_weather} ${area}
+          step_range='${{ secrets.STEP_RANGE }}'
+          if [ -z "$step_range" ]; then
+            step_range='5000-10000:90,10001-12000:10'
+          fi
+          python3 main.py ${user} ${passwd} ${open_get_weather} ${area} ${step_range} daily

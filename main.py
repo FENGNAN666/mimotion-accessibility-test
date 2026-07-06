@@ -16,12 +16,14 @@ import requests
 class MiMotion():
     name = "小米运动"
 
-    def __init__(self, user, password, factor=1):
+    def __init__(self, user, password, factor=1, step_range=None, step_mode="range"):
         user, third_name = self.process_user(user)
         self.user = user
         self.third_name = third_name
         self.password = password
         self.factor = factor
+        self.step_range = step_range
+        self.step_mode = step_mode
 
     @staticmethod
     def process_user(user):
@@ -129,6 +131,13 @@ class MiMotion():
 
     # 获取当前时间对应的最大和最小步数
     def get_step_by_time(self):
+        if self.step_mode == "daily":
+            step = get_daily_step()
+            return step, step
+
+        if self.step_range:
+            return self.step_range
+
         # 获取当前时间
         hour = get_beijing_time().hour
         min_ratio = max(math.ceil((hour / 3) - 1), 0)
@@ -220,6 +229,75 @@ def get_factor_by_weather(area):
             print("获取天气情况出错")
         return 1
 
+def parse_step_range(value):
+    if not value:
+        return None
+
+    weighted_ranges = []
+    for part in value.split(","):
+        weighted_match = re.fullmatch(r"\s*(\d+)\s*-\s*(\d+)\s*:\s*(\d+)\s*", part)
+        if weighted_match:
+            min_step, max_step, weight = map(int, weighted_match.groups())
+            if min_step > max_step:
+                min_step, max_step = max_step, min_step
+            if weight > 0:
+                weighted_ranges.append((min_step, max_step, weight))
+            continue
+
+        if ":" in part:
+            raise ValueError("加权步数范围格式应为 5000-10000:90,10001-12000:10")
+
+    if weighted_ranges:
+        min_step, max_step, _ = random.choices(
+            weighted_ranges,
+            weights=[item[2] for item in weighted_ranges],
+            k=1
+        )[0]
+        return min_step, max_step
+
+    match = re.fullmatch(r"\s*(\d+)\s*[-,]\s*(\d+)\s*", value)
+    if not match:
+        raise ValueError("步数范围格式应为 5000-12000")
+
+    min_step, max_step = map(int, match.groups())
+    if min_step > max_step:
+        min_step, max_step = max_step, min_step
+    return min_step, max_step
+
+def get_daily_total_step(current_time):
+    seed = int(current_time.strftime("%Y%m%d"))
+    rng = random.Random(seed)
+    if rng.random() < 0.9:
+        return rng.randint(5000, 10000)
+    return rng.randint(10001, 12000)
+
+def get_daily_step():
+    current_time = get_beijing_time()
+    total_step = get_daily_total_step(current_time)
+    hour = current_time.hour + current_time.minute / 60
+    schedule = [
+        (0, 0.03),
+        (8.5, 0.24),
+        (11.5, 0.28),
+        (13.83, 0.48),
+        (17.5, 0.58),
+        (20.5, 0.88),
+        (22.5, 1.0),
+        (24, 1.0),
+    ]
+
+    ratio = schedule[-1][1]
+    for (start_hour, start_ratio), (end_hour, end_ratio) in zip(schedule, schedule[1:]):
+        if start_hour <= hour < end_hour:
+            progress = (hour - start_hour) / (end_hour - start_hour)
+            ratio = start_ratio + (end_ratio - start_ratio) * progress
+            break
+
+    seed = int(current_time.strftime("%Y%m%d%H"))
+    jitter = random.Random(seed).randint(-120, 120)
+    step = int(total_step * ratio) + jitter
+    return max(0, min(step, total_step))
+
 if __name__ == "__main__":
     users = sys.argv[1]
     passwords = sys.argv[2]
@@ -227,10 +305,12 @@ if __name__ == "__main__":
     open_get_weather = sys.argv[3]
     # 设置获取天气的地区（上面开启后必填）如：area = "深圳"
     area = sys.argv[4]
+    step_range = parse_step_range(sys.argv[5]) if len(sys.argv) > 5 else None
+    step_mode = sys.argv[6] if len(sys.argv) > 6 else "range"
     factor = 1
     if open_get_weather == "True":
         factor = get_factor_by_weather(area)
     user_list = users.split('#')
     passwd_list = passwords.split('#')
     for user, passwd in zip(user_list, passwd_list):
-        MiMotion(user, passwd, factor).run()
+        MiMotion(user, passwd, factor, step_range, step_mode).run()
