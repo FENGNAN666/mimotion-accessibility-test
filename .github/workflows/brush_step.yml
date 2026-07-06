@@ -1,8 +1,6 @@
 name: brush step
 
 on:
-  push:
-    branches: [ master ]
   #pull_request:
   #  branches: [ main ]
   schedule:
