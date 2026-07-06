@@ -270,16 +270,38 @@
       if (state === "disabled_manually") el.classList.add("off");
     }
 
+    async function getAutoRunEnabled() {
+      try {
+        const variable = await api("/actions/variables/AUTO_RUN_ENABLED");
+        return variable.value === "true";
+      } catch (error) {
+        if (error.message.includes("Not Found")) return false;
+        throw error;
+      }
+    }
+
+    async function setAutoRunEnabled(enabled) {
+      const body = JSON.stringify({ name: "AUTO_RUN_ENABLED", value: enabled ? "true" : "false" });
+      try {
+        await api("/actions/variables/AUTO_RUN_ENABLED", { method: "PATCH", body });
+      } catch (error) {
+        if (!error.message.includes("Not Found")) throw error;
+        await api("/actions/variables", { method: "POST", body });
+      }
+    }
+
     async function refreshWorkflow() {
       $("workflowStatus").textContent = "正在读取...";
       const workflow = await api(`/actions/workflows/${workflowId}`);
+      const autoRunEnabled = await getAutoRunEnabled();
       setState(workflow.state);
-      $("workflowStatus").textContent = `工作流：${workflow.name}\n路径：${workflow.path}`;
+      $("workflowStatus").textContent = `工作流：${workflow.name}\n路径：${workflow.path}\n自动定时：${autoRunEnabled ? "已启用" : "已停用"}\n手动同步：${workflow.state === "active" ? "可用" : "不可用，请先启用工作流"}`;
     }
 
     async function setWorkflow(enabled) {
-      $("workflowStatus").textContent = enabled ? "正在启用..." : "正在停用...";
-      await api(`/actions/workflows/${workflowId}/${enabled ? "enable" : "disable"}`, { method: "PUT" });
+      $("workflowStatus").textContent = enabled ? "正在启用自动定时..." : "正在停用自动定时...";
+      await api(`/actions/workflows/${workflowId}/enable`, { method: "PUT" });
+      await setAutoRunEnabled(enabled);
       await refreshWorkflow();
     }
 

@@ -19,6 +19,7 @@ on:
 
 jobs:
   build:
+    if: github.event_name != 'schedule' || vars.AUTO_RUN_ENABLED == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout codes
