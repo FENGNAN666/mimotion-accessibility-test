@@ -39,9 +39,24 @@ jobs:
           pip3 install requests pytz pycryptodome
           user='${{ secrets.USER }}'
           passwd='${{ secrets.PWD }}' 
-          open_get_weather='${{ secrets.OPEN_GET_WEATHER }}'
-          area='${{ secrets.AREA }}'
-          step_range='${{ secrets.STEP_RANGE }}'
+          open_get_weather='${{ vars.OPEN_GET_WEATHER }}'
+          if [ -z "$open_get_weather" ]; then
+            open_get_weather='${{ secrets.OPEN_GET_WEATHER }}'
+          fi
+          if [ -z "$open_get_weather" ]; then
+            open_get_weather='False'
+          fi
+          area='${{ vars.AREA }}'
+          if [ -z "$area" ]; then
+            area='${{ secrets.AREA }}'
+          fi
+          if [ -z "$area" ]; then
+            area='NO'
+          fi
+          step_range='${{ vars.STEP_RANGE }}'
+          if [ -z "$step_range" ]; then
+            step_range='${{ secrets.STEP_RANGE }}'
+          fi
           if [ -z "$step_range" ]; then
             step_range='5000-10000:90,10001-12000:10'
           fi

@@ -4,18 +4,32 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>MiMotion 控制台</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>
     :root {
-      color-scheme: light;
-      --bg: #f6f7f9;
-      --panel: #ffffff;
-      --text: #1f2937;
-      --muted: #667085;
-      --line: #d0d5dd;
-      --primary: #2563eb;
-      --primary-dark: #1d4ed8;
-      --danger: #b42318;
-      --ok: #067647;
+      --canvas: #000;
+      --surface-card: #0a0a0c;
+      --surface-elevated: #101014;
+      --surface-deep: #06060a;
+      --hairline: rgba(255, 255, 255, 0.08);
+      --hairline-strong: rgba(255, 255, 255, 0.16);
+      --ink: #fcfdff;
+      --body: rgba(252, 253, 255, 0.86);
+      --charcoal: rgba(252, 253, 255, 0.68);
+      --mute: #a1a4a8;
+      --primary: #fcfdff;
+      --primary-on: #000;
+      --surface-light: #eef4ff;
+      --blue-glow: rgba(0, 117, 255, 0.18);
+      --accent-red: #ff2047;
+      --accent-yellow: #ffc53d;
+      --accent-green: #11ff99;
+      --accent-blue: #7db2ff;
+      --font-display: Georgia, "Times New Roman", serif;
+      --font-sans: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --font-mono: "JetBrains Mono", Consolas, monospace;
     }
 
     * {
@@ -24,150 +38,353 @@
 
     body {
       margin: 0;
-      background: var(--bg);
-      color: var(--text);
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at 50% -20%, var(--blue-glow), transparent 58%) fixed, var(--canvas);
+      color: var(--body);
+      font-family: var(--font-sans);
       line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
     }
 
     main {
-      width: min(920px, calc(100% - 32px));
-      margin: 32px auto;
+      width: min(1240px, calc(100% - 48px));
+      margin: 72px auto 112px;
     }
 
     h1 {
-      margin: 0 0 4px;
-      font-size: 28px;
+      margin: 0 0 14px;
+      color: var(--ink);
+      font-family: var(--font-display);
+      font-size: clamp(44px, 6vw, 76px);
+      font-weight: 400;
+      line-height: 1;
       letter-spacing: 0;
     }
 
+    h2 {
+      margin: 0 0 20px;
+      color: var(--ink);
+      font-size: 22px;
+      font-weight: 600;
+      letter-spacing: 0;
+    }
+
+    h3 {
+      margin: 22px 0 10px;
+      color: var(--ink);
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    p {
+      margin: 0;
+    }
+
     .subtitle {
-      margin: 0 0 24px;
-      color: var(--muted);
+      max-width: 760px;
+      margin: 0 0 32px;
+      color: var(--charcoal);
+      font-size: 18px;
+    }
+
+    .topbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 24px;
     }
 
     .grid {
       display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-columns: repeat(12, 1fr);
       gap: 16px;
+      margin-bottom: 16px;
     }
 
     .panel {
-      background: var(--panel);
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      padding: 18px;
+      grid-column: span 6;
+      min-width: 0;
+      background: var(--surface-card);
+      border: 1px solid var(--hairline-strong);
+      border-radius: 12px;
+      padding: 28px;
     }
 
     .panel.full {
       grid-column: 1 / -1;
     }
 
-    h2 {
-      margin: 0 0 14px;
+    .panel.third {
+      grid-column: span 4;
+    }
+
+    .panel.two-thirds {
+      grid-column: span 8;
+    }
+
+    .metric-row {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .metric {
+      min-height: 88px;
+      background: var(--surface-elevated);
+      border: 1px solid var(--hairline);
+      border-radius: 10px;
+      padding: 16px;
+    }
+
+    .metric-label {
+      margin-bottom: 8px;
+      color: var(--mute);
+      font-size: 12px;
+    }
+
+    .metric-value {
+      color: var(--ink);
+      font-family: var(--font-mono);
       font-size: 18px;
+      overflow-wrap: anywhere;
     }
 
     label {
       display: block;
-      margin: 12px 0 6px;
-      font-weight: 650;
+      margin: 14px 0 8px;
+      color: var(--charcoal);
+      font-size: 14px;
+      font-weight: 500;
     }
 
-    input {
+    input,
+    select,
+    textarea {
       width: 100%;
-      min-height: 44px;
-      border: 1px solid var(--line);
-      border-radius: 6px;
+      min-height: 40px;
+      background: var(--surface-card);
+      border: 1px solid var(--hairline-strong);
+      border-radius: 8px;
+      color: var(--ink);
+      font: 14px var(--font-sans);
       padding: 10px 12px;
-      font: inherit;
-      background: #fff;
+    }
+
+    textarea {
+      min-height: 92px;
+      resize: vertical;
+      font-family: var(--font-mono);
+      line-height: 1.55;
+    }
+
+    input::placeholder,
+    textarea::placeholder {
+      color: var(--mute);
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      outline: none;
+      border-color: var(--ink);
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
     }
 
     .actions {
       display: flex;
       flex-wrap: wrap;
       gap: 10px;
-      margin-top: 14px;
+      margin-top: 20px;
     }
 
     button,
     a.button {
-      min-height: 42px;
-      border: 1px solid transparent;
-      border-radius: 6px;
-      padding: 9px 14px;
+      min-height: 38px;
       background: var(--primary);
-      color: white;
-      font: inherit;
-      font-weight: 650;
+      border: 1px solid transparent;
+      border-radius: 8px;
+      color: var(--primary-on);
       cursor: pointer;
-      text-decoration: none;
       display: inline-flex;
       align-items: center;
       justify-content: center;
+      font: 600 14px var(--font-sans);
+      padding: 0 15px;
+      text-decoration: none;
+      transition: background-color .18s ease, transform .1s ease;
     }
 
     button:hover,
     a.button:hover {
-      background: var(--primary-dark);
+      background: var(--surface-light);
+    }
+
+    button:active,
+    a.button:active {
+      transform: scale(.98);
     }
 
     button.secondary,
     a.button.secondary {
-      background: #fff;
-      border-color: var(--line);
-      color: var(--text);
+      background: var(--surface-elevated);
+      border-color: var(--hairline-strong);
+      color: var(--ink);
     }
 
     button.secondary:hover,
     a.button.secondary:hover {
-      background: #f2f4f7;
+      background: rgba(255, 255, 255, .08);
     }
 
     button.danger {
-      background: var(--danger);
+      background: transparent;
+      border-color: var(--hairline-strong);
+      color: var(--accent-red);
+    }
+
+    button.danger:hover {
+      background: rgba(255, 32, 71, .1);
+      border-color: rgba(255, 32, 71, .35);
     }
 
     .status {
-      margin-top: 12px;
-      min-height: 24px;
-      color: var(--muted);
-      white-space: pre-wrap;
+      margin-top: 18px;
+      background: var(--surface-deep);
+      border: 1px solid var(--hairline-strong);
+      border-radius: 12px;
+      color: var(--mute);
+      font: 13px/1.6 var(--font-mono);
       overflow-wrap: anywhere;
+      padding: 20px;
+      white-space: pre-wrap;
     }
 
+    .status:empty {
+      display: none;
+    }
+
+    .status::before {
+      content: "";
+      display: block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--accent-red);
+      box-shadow: 16px 0 0 var(--accent-yellow), 32px 0 0 var(--accent-green);
+      margin-bottom: 14px;
+      opacity: .86;
+    }
+
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .pill,
     .state {
-      display: inline-block;
-      padding: 3px 8px;
+      display: inline-flex;
+      align-items: center;
+      min-height: 26px;
+      border: 1px solid var(--hairline-strong);
       border-radius: 999px;
-      background: #eef4ff;
-      color: #175cd3;
-      font-weight: 700;
+      background: var(--surface-elevated);
+      color: var(--body);
+      font-size: 12px;
+      font-weight: 600;
+      padding: 3px 10px;
     }
 
-    .state.ok {
-      background: #ecfdf3;
-      color: var(--ok);
+    .state.ok,
+    .pill.ok {
+      color: var(--accent-green);
+      background: rgba(17, 255, 153, .05);
+      border-color: rgba(17, 255, 153, .24);
     }
 
-    .state.off {
-      background: #fef3f2;
-      color: var(--danger);
+    .state.off,
+    .pill.off {
+      color: var(--accent-red);
+      background: rgba(255, 32, 71, .05);
+      border-color: rgba(255, 32, 71, .28);
     }
 
-    @media (max-width: 720px) {
+    .pill.info {
+      color: var(--accent-blue);
+      border-color: rgba(125, 178, 255, .28);
+    }
+
+    .guide {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .guide ul {
+      margin: 0;
+      padding-left: 20px;
+      color: var(--charcoal);
+    }
+
+    .guide li + li {
+      margin-top: 8px;
+    }
+
+    code {
+      color: var(--ink);
+      font-family: var(--font-mono);
+      font-size: .95em;
+    }
+
+    .muted {
+      color: var(--mute);
+      font-size: 13px;
+    }
+
+    @media (max-width: 980px) {
       main {
-        width: min(100% - 20px, 920px);
-        margin: 20px auto;
+        margin-top: 48px;
       }
 
-      .grid {
+      .panel,
+      .panel.third,
+      .panel.two-thirds {
+        grid-column: 1 / -1;
+      }
+
+      .metric-row,
+      .guide {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 560px) {
+      main {
+        width: calc(100% - 28px);
+      }
+
+      .panel {
+        padding: 22px;
+      }
+
+      .form-row {
         grid-template-columns: 1fr;
       }
 
-      h1 {
-        font-size: 24px;
+      button,
+      a.button {
+        width: 100%;
+        min-height: 44px;
+      }
+
+      .actions {
+        flex-direction: column;
       }
     }
   </style>
@@ -175,51 +392,193 @@
 <body>
   <main>
     <h1>MiMotion 控制台</h1>
-    <p class="subtitle">管理 GitHub Actions 自动运行，并手动同步测试步数。</p>
+    <p class="subtitle">集中管理自动运行、手动同步、步数策略、天气参数、运行记录和项目规则。</p>
+
+    <div class="topbar">
+      <a class="button secondary" href="https://github.com/FENGNAN666/mimotion-accessibility-test" target="_blank" rel="noreferrer">打开仓库</a>
+      <a class="button secondary" href="https://github.com/FENGNAN666/mimotion-accessibility-test/actions" target="_blank" rel="noreferrer">打开 Actions</a>
+      <a class="button secondary" href="https://github.com/FENGNAN666/mimotion-accessibility-test/settings/secrets/actions" target="_blank" rel="noreferrer">Secrets</a>
+      <a class="button secondary" href="https://github.com/settings/tokens" target="_blank" rel="noreferrer">管理 Token</a>
+    </div>
 
     <section class="panel full">
-      <h2>GitHub 访问令牌</h2>
-      <label for="token">Token</label>
-      <input id="token" type="password" autocomplete="off" placeholder="输入有 repo 和 workflow 权限的 GitHub token">
-      <div class="actions">
-        <button id="saveToken">保存到本浏览器</button>
-        <button class="secondary" id="clearToken">清除</button>
-        <a class="button secondary" href="https://github.com/settings/tokens" target="_blank" rel="noreferrer">管理 Token</a>
+      <h2>状态总览</h2>
+      <div class="metric-row">
+        <div class="metric">
+          <div class="metric-label">Workflow</div>
+          <div class="metric-value"><span class="state" id="workflowState">未读取</span></div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">自动定时</div>
+          <div class="metric-value"><span class="state" id="autoState">未读取</span></div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">步数策略</div>
+          <div class="metric-value" id="rangeSummary">未读取</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">天气</div>
+          <div class="metric-value" id="weatherSummary">未读取</div>
+        </div>
       </div>
-      <div class="status" id="tokenStatus"></div>
+      <div class="actions">
+        <button id="refreshAll">刷新全部</button>
+        <button id="enableAuto">启用自动定时</button>
+        <button class="danger" id="disableAuto">停用自动定时</button>
+      </div>
+      <div class="status" id="overviewStatus"></div>
     </section>
 
     <div class="grid">
-      <section class="panel">
-        <h2>自动运行</h2>
-        <p>当前状态：<span class="state" id="workflowState">未读取</span></p>
+      <section class="panel two-thirds">
+        <h2>GitHub 访问令牌</h2>
+        <p class="muted">控制台通过 GitHub API 操作你的仓库。令牌只保存在当前浏览器的 localStorage，不会写进仓库。</p>
+        <label for="token">Token</label>
+        <input id="token" type="password" autocomplete="off" placeholder="需要 repo、workflow、actions variables 权限">
         <div class="actions">
-          <button id="refresh">刷新状态</button>
-          <button id="enable">启用</button>
-          <button class="danger" id="disable">停用</button>
+          <button id="saveToken">保存到本浏览器</button>
+          <button class="secondary" id="clearToken">清除</button>
+          <button class="secondary" id="testToken">测试连接</button>
         </div>
-        <div class="status" id="workflowStatus"></div>
+        <div class="status" id="tokenStatus"></div>
       </section>
 
+      <section class="panel third">
+        <h2>当前项目能力</h2>
+        <div class="pill-row">
+          <span class="pill ok">定时自动运行</span>
+          <span class="pill ok">手动指定步数</span>
+          <span class="pill ok">今日累计模式</span>
+          <span class="pill ok">加权随机范围</span>
+          <span class="pill info">天气因子</span>
+          <span class="pill info">多账号格式</span>
+          <span class="pill info">运行记录</span>
+        </div>
+        <div class="status">手动运行不会受自动定时开关影响；停用自动定时只会让 schedule 事件跳过。</div>
+      </section>
+    </div>
+
+    <div class="grid">
       <section class="panel">
         <h2>手动同步</h2>
-        <label for="step">步数</label>
-        <input id="step" type="number" min="0" max="50000" step="1" placeholder="例如 8200">
+        <label for="manualStep">指定步数</label>
+        <input id="manualStep" type="number" min="0" max="50000" step="1" placeholder="例如 6532">
         <div class="actions">
-          <button id="runManual">同步步数</button>
+          <button id="runManual">同步指定步数</button>
           <button class="secondary" id="runDaily">按今日累计运行</button>
         </div>
         <div class="status" id="runStatus"></div>
       </section>
+
+      <section class="panel">
+        <h2>步数策略</h2>
+        <label for="stepRange">STEP_RANGE</label>
+        <textarea id="stepRange" placeholder="5000-10000:90,10001-12000:10"></textarea>
+        <p class="muted">普通范围：<code>5000-12000</code>；加权范围：<code>5000-10000:90,10001-12000:10</code>。</p>
+        <div class="actions">
+          <button id="saveRange">保存策略</button>
+          <button class="secondary" id="resetRange">填入默认</button>
+        </div>
+        <div class="status" id="rangeStatus"></div>
+      </section>
+    </div>
+
+    <div class="grid">
+      <section class="panel">
+        <h2>天气与地区</h2>
+        <div class="form-row">
+          <div>
+            <label for="weatherEnabled">OPEN_GET_WEATHER</label>
+            <select id="weatherEnabled">
+              <option value="False">False - 关闭</option>
+              <option value="True">True - 开启</option>
+            </select>
+          </div>
+          <div>
+            <label for="area">AREA</label>
+            <input id="area" placeholder="NO 或城市名，例如 北京">
+          </div>
+        </div>
+        <div class="actions">
+          <button id="saveWeather">保存天气配置</button>
+          <button class="secondary" id="weatherOff">关闭天气</button>
+        </div>
+        <div class="status" id="weatherStatus"></div>
+      </section>
+
+      <section class="panel">
+        <h2>账号配置</h2>
+        <p class="muted">账号和密码保存在 GitHub Actions Secrets 中。GitHub 不允许页面读取 secret 明文；为了避免在浏览器里处理密码，这里提供直达入口。</p>
+        <label>Secret 名称</label>
+        <div class="status">USER: 小米运动/Zepp 登录账号，手机号或邮箱；多账号用 # 分隔
+PWD: 小米运动/Zepp 登录密码；多账号密码同样用 # 分隔</div>
+        <div class="actions">
+          <a class="button" href="https://github.com/FENGNAN666/mimotion-accessibility-test/settings/secrets/actions" target="_blank" rel="noreferrer">打开 Secrets 设置</a>
+        </div>
+      </section>
+    </div>
+
+    <div class="grid">
+      <section class="panel">
+        <h2>运行记录</h2>
+        <div class="actions">
+          <button id="loadRuns">读取最近记录</button>
+          <button class="secondary" id="loadLatestRun">读取最新详情</button>
+        </div>
+        <div class="status" id="runs"></div>
+      </section>
+
+      <section class="panel">
+        <h2>定时规则</h2>
+        <div class="status">当前 schedule:
+UTC 00:35 / 03:35 / 05:35 / 09:35 / 12:35 / 14:35
+
+北京时间:
+08:35 / 11:35 / 13:35 / 17:35 / 20:35 / 22:35
+
+说明:
+GitHub Actions 的 cron 使用 UTC。自动定时是否执行由 AUTO_RUN_ENABLED 控制。</div>
+      </section>
     </div>
 
     <section class="panel full">
-      <h2>运行记录</h2>
-      <div class="actions">
-        <button id="loadRuns">读取最近记录</button>
-        <a class="button secondary" href="https://github.com/FENGNAN666/mimotion-accessibility-test/actions" target="_blank" rel="noreferrer">打开 Actions</a>
+      <h2>规则与说明</h2>
+      <div class="guide">
+        <div>
+          <h3>使用规则</h3>
+          <ul>
+            <li>用途是个人可访问性测试和同步功能验证。</li>
+            <li>手动同步会立即触发 GitHub Actions，并使用输入的步数。</li>
+            <li>今日累计模式会按当天日期和北京时间生成累计值。</li>
+            <li>自动定时停用后，手动同步仍然可用。</li>
+          </ul>
+        </div>
+        <div>
+          <h3>配置说明</h3>
+          <ul>
+            <li><code>USER</code> 和 <code>PWD</code> 存在 Secrets；页面只能覆盖，不能读取明文。</li>
+            <li><code>AUTO_RUN_ENABLED</code>、<code>STEP_RANGE</code>、<code>OPEN_GET_WEATHER</code>、<code>AREA</code> 存在 Variables，可读取和修改。</li>
+            <li>多账号格式：账号和密码都用 <code>#</code> 分隔，并保持数量一致。</li>
+            <li>天气关闭时，<code>AREA</code> 建议为 <code>NO</code>。</li>
+          </ul>
+        </div>
+        <div>
+          <h3>安全提示</h3>
+          <ul>
+            <li>GitHub token 不要长期复用，建议专门为控制台创建并定期撤销。</li>
+            <li>公开仓库不要把账号、密码或 token 写入文件。</li>
+            <li>浏览器保存 token 后，只适合在你信任的个人设备上使用。</li>
+          </ul>
+        </div>
+        <div>
+          <h3>故障排查</h3>
+          <ul>
+            <li>如果手动同步失败，先刷新状态，确认 workflow 是 <code>active</code>。</li>
+            <li>如果变量保存失败，检查 token 是否具备仓库变量写权限。</li>
+            <li>如果 Actions 成功但第三方未同步，检查小米运动/Zepp 绑定关系。</li>
+          </ul>
+        </div>
       </div>
-      <div class="status" id="runs"></div>
     </section>
   </main>
 
@@ -229,6 +588,12 @@
     const workflowId = "brush_step.yml";
     const branch = "master";
     const apiBase = `https://api.github.com/repos/${owner}/${repo}`;
+    const defaults = {
+      AUTO_RUN_ENABLED: "true",
+      STEP_RANGE: "5000-10000:90,10001-12000:10",
+      OPEN_GET_WEATHER: "False",
+      AREA: "NO"
+    };
 
     const $ = (id) => document.getElementById(id);
 
@@ -236,13 +601,14 @@
       return $("token").value.trim();
     }
 
-    function headers() {
+    function headers(extra = {}) {
       const token = getToken();
       if (!token) throw new Error("请先输入 GitHub token");
       return {
         "Authorization": `Bearer ${token}`,
         "Accept": "application/vnd.github+json",
-        "X-GitHub-Api-Version": "2022-11-28"
+        "X-GitHub-Api-Version": "2022-11-28",
+        ...extra
       };
     }
 
@@ -250,8 +616,7 @@
       const response = await fetch(`${apiBase}${path}`, {
         ...options,
         headers: {
-          ...headers(),
-          ...(options.headers || {})
+          ...headers(options.headers || {})
         }
       });
       if (response.status === 204) return null;
@@ -262,69 +627,94 @@
       return data;
     }
 
-    function setState(state) {
-      const el = $("workflowState");
-      el.textContent = state || "未知";
+    function setState(el, value, okValue = "true") {
+      el.textContent = value || "未知";
       el.className = "state";
-      if (state === "active") el.classList.add("ok");
-      if (state === "disabled_manually") el.classList.add("off");
+      if (value === okValue || value === "active" || value === "已启用") el.classList.add("ok");
+      if (value === "false" || value === "disabled_manually" || value === "已停用") el.classList.add("off");
     }
 
-    async function getAutoRunEnabled() {
+    async function getVariable(name, fallback = "") {
       try {
-        const variable = await api("/actions/variables/AUTO_RUN_ENABLED");
-        return variable.value === "true";
+        const variable = await api(`/actions/variables/${name}`);
+        return variable.value;
       } catch (error) {
-        if (error.message.includes("Not Found")) return false;
+        if (error.message.includes("Not Found")) return fallback;
         throw error;
       }
     }
 
-    async function setAutoRunEnabled(enabled) {
-      const body = JSON.stringify({ name: "AUTO_RUN_ENABLED", value: enabled ? "true" : "false" });
+    async function setVariable(name, value) {
+      const body = JSON.stringify({ name, value });
       try {
-        await api("/actions/variables/AUTO_RUN_ENABLED", { method: "PATCH", body });
+        await api(`/actions/variables/${name}`, { method: "PATCH", body });
       } catch (error) {
         if (!error.message.includes("Not Found")) throw error;
         await api("/actions/variables", { method: "POST", body });
       }
     }
 
-    async function refreshWorkflow() {
-      $("workflowStatus").textContent = "正在读取...";
+    async function refreshAll() {
+      $("overviewStatus").textContent = "正在读取仓库配置...";
       const workflow = await api(`/actions/workflows/${workflowId}`);
-      const autoRunEnabled = await getAutoRunEnabled();
-      setState(workflow.state);
-      $("workflowStatus").textContent = `工作流：${workflow.name}\n路径：${workflow.path}\n自动定时：${autoRunEnabled ? "已启用" : "已停用"}\n手动同步：${workflow.state === "active" ? "可用" : "不可用，请先启用工作流"}`;
+      const [autoRun, stepRange, weatherEnabled, area] = await Promise.all([
+        getVariable("AUTO_RUN_ENABLED", defaults.AUTO_RUN_ENABLED),
+        getVariable("STEP_RANGE", defaults.STEP_RANGE),
+        getVariable("OPEN_GET_WEATHER", defaults.OPEN_GET_WEATHER),
+        getVariable("AREA", defaults.AREA)
+      ]);
+
+      setState($("workflowState"), workflow.state);
+      setState($("autoState"), autoRun === "true" ? "已启用" : "已停用", "已启用");
+      $("rangeSummary").textContent = stepRange;
+      $("weatherSummary").textContent = `${weatherEnabled} / ${area}`;
+      $("stepRange").value = stepRange;
+      $("weatherEnabled").value = weatherEnabled === "True" ? "True" : "False";
+      $("area").value = area;
+      $("overviewStatus").textContent = `已读取：${workflow.name}\n路径：${workflow.path}\n手动同步：${workflow.state === "active" ? "可用" : "不可用，请先启用 workflow"}`;
     }
 
-    async function setWorkflow(enabled) {
-      $("workflowStatus").textContent = enabled ? "正在启用自动定时..." : "正在停用自动定时...";
+    async function setAutoRun(enabled) {
+      $("overviewStatus").textContent = enabled ? "正在启用自动定时..." : "正在停用自动定时...";
       await api(`/actions/workflows/${workflowId}/enable`, { method: "PUT" });
-      await setAutoRunEnabled(enabled);
-      await refreshWorkflow();
+      await setVariable("AUTO_RUN_ENABLED", enabled ? "true" : "false");
+      await refreshAll();
     }
 
     async function dispatch(inputs) {
-      $("runStatus").textContent = "正在触发...";
+      $("runStatus").textContent = "正在触发 GitHub Actions...";
+      await api(`/actions/workflows/${workflowId}/enable`, { method: "PUT" });
       await api(`/actions/workflows/${workflowId}/dispatches`, {
         method: "POST",
         body: JSON.stringify({ ref: branch, inputs })
       });
-      $("runStatus").textContent = "已触发，通常几十秒后可在运行记录里看到结果。";
+      $("runStatus").textContent = "已触发。几十秒后点击“读取最近记录”查看结果。";
     }
 
     async function loadRuns() {
-      $("runs").textContent = "正在读取...";
-      const data = await api(`/actions/runs?per_page=5`);
-      if (!data.workflow_runs.length) {
+      $("runs").textContent = "正在读取最近记录...";
+      const data = await api("/actions/runs?per_page=8");
+      if (!data.workflow_runs?.length) {
         $("runs").textContent = "暂无运行记录。";
         return;
       }
       $("runs").textContent = data.workflow_runs.map((run) => {
         const conclusion = run.conclusion || "进行中";
-        return `${run.display_title || run.name} | ${run.event} | ${run.status}/${conclusion}\n${run.html_url}`;
+        return `${run.name} | ${run.event} | ${run.status}/${conclusion}\n${run.created_at}\n${run.html_url}`;
       }).join("\n\n");
+    }
+
+    async function loadLatestRun() {
+      $("runs").textContent = "正在读取最新运行详情...";
+      const data = await api("/actions/runs?per_page=1");
+      const run = data.workflow_runs?.[0];
+      if (!run) {
+        $("runs").textContent = "暂无运行记录。";
+        return;
+      }
+      const jobs = await api(`/actions/runs/${run.id}/jobs`);
+      const jobLines = jobs.jobs.map((job) => `${job.name}: ${job.status}/${job.conclusion || "进行中"}`).join("\n");
+      $("runs").textContent = `${run.name}\n事件：${run.event}\n状态：${run.status}/${run.conclusion || "进行中"}\n时间：${run.created_at}\n链接：${run.html_url}\n\nJobs:\n${jobLines}`;
     }
 
     $("saveToken").addEventListener("click", () => {
@@ -338,20 +728,30 @@
       $("tokenStatus").textContent = "已清除。";
     });
 
-    $("refresh").addEventListener("click", () => refreshWorkflow().catch((error) => {
-      $("workflowStatus").textContent = error.message;
+    $("testToken").addEventListener("click", async () => {
+      try {
+        $("tokenStatus").textContent = "正在测试...";
+        const repoInfo = await api("");
+        $("tokenStatus").textContent = `连接成功：${repoInfo.full_name}\n可见性：${repoInfo.visibility}\n默认分支：${repoInfo.default_branch}`;
+      } catch (error) {
+        $("tokenStatus").textContent = error.message;
+      }
+    });
+
+    $("refreshAll").addEventListener("click", () => refreshAll().catch((error) => {
+      $("overviewStatus").textContent = error.message;
     }));
 
-    $("enable").addEventListener("click", () => setWorkflow(true).catch((error) => {
-      $("workflowStatus").textContent = error.message;
+    $("enableAuto").addEventListener("click", () => setAutoRun(true).catch((error) => {
+      $("overviewStatus").textContent = error.message;
     }));
 
-    $("disable").addEventListener("click", () => setWorkflow(false).catch((error) => {
-      $("workflowStatus").textContent = error.message;
+    $("disableAuto").addEventListener("click", () => setAutoRun(false).catch((error) => {
+      $("overviewStatus").textContent = error.message;
     }));
 
     $("runManual").addEventListener("click", () => {
-      const step = Number($("step").value);
+      const step = Number($("manualStep").value);
       if (!Number.isInteger(step) || step < 0 || step > 50000) {
         $("runStatus").textContent = "请输入 0 到 50000 之间的整数步数。";
         return;
@@ -361,18 +761,58 @@
       });
     });
 
-    $("runDaily").addEventListener("click", () => dispatch({ mode: "daily", step: "" }).catch((error) => {
-      $("runStatus").textContent = error.message;
-    }));
+    $("runDaily").addEventListener("click", () => {
+      dispatch({ mode: "daily", step: "" }).catch((error) => {
+        $("runStatus").textContent = error.message;
+      });
+    });
+
+    $("saveRange").addEventListener("click", async () => {
+      try {
+        const value = $("stepRange").value.trim();
+        if (!value) throw new Error("步数策略不能为空");
+        $("rangeStatus").textContent = "正在保存...";
+        await setVariable("STEP_RANGE", value);
+        $("rangeStatus").textContent = "已保存 STEP_RANGE。";
+        await refreshAll();
+      } catch (error) {
+        $("rangeStatus").textContent = error.message;
+      }
+    });
+
+    $("resetRange").addEventListener("click", () => {
+      $("stepRange").value = defaults.STEP_RANGE;
+    });
+
+    $("saveWeather").addEventListener("click", async () => {
+      try {
+        $("weatherStatus").textContent = "正在保存...";
+        await Promise.all([
+          setVariable("OPEN_GET_WEATHER", $("weatherEnabled").value),
+          setVariable("AREA", $("area").value.trim() || "NO")
+        ]);
+        $("weatherStatus").textContent = "天气配置已保存。";
+        await refreshAll();
+      } catch (error) {
+        $("weatherStatus").textContent = error.message;
+      }
+    });
+
+    $("weatherOff").addEventListener("click", () => {
+      $("weatherEnabled").value = "False";
+      $("area").value = "NO";
+    });
 
     $("loadRuns").addEventListener("click", () => loadRuns().catch((error) => {
       $("runs").textContent = error.message;
     }));
 
+    $("loadLatestRun").addEventListener("click", () => loadLatestRun().catch((error) => {
+      $("runs").textContent = error.message;
+    }));
+
     $("token").value = localStorage.getItem("githubToken") || "";
-    if ($("token").value) {
-      refreshWorkflow().catch(() => {});
-    }
+    if ($("token").value) refreshAll().catch(() => {});
   </script>
 </body>
 </html>
