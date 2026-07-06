@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MiMotion 控制台</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f7f9;
+      --panel: #ffffff;
+      --text: #1f2937;
+      --muted: #667085;
+      --line: #d0d5dd;
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --danger: #b42318;
+      --ok: #067647;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.5;
+    }
+
+    main {
+      width: min(920px, calc(100% - 32px));
+      margin: 32px auto;
+    }
+
+    h1 {
+      margin: 0 0 4px;
+      font-size: 28px;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      margin: 0 0 24px;
+      color: var(--muted);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 18px;
+    }
+
+    .panel.full {
+      grid-column: 1 / -1;
+    }
+
+    h2 {
+      margin: 0 0 14px;
+      font-size: 18px;
+    }
+
+    label {
+      display: block;
+      margin: 12px 0 6px;
+      font-weight: 650;
+    }
+
+    input {
+      width: 100%;
+      min-height: 44px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 10px 12px;
+      font: inherit;
+      background: #fff;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    button,
+    a.button {
+      min-height: 42px;
+      border: 1px solid transparent;
+      border-radius: 6px;
+      padding: 9px 14px;
+      background: var(--primary);
+      color: white;
+      font: inherit;
+      font-weight: 650;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    button:hover,
+    a.button:hover {
+      background: var(--primary-dark);
+    }
+
+    button.secondary,
+    a.button.secondary {
+      background: #fff;
+      border-color: var(--line);
+      color: var(--text);
+    }
+
+    button.secondary:hover,
+    a.button.secondary:hover {
+      background: #f2f4f7;
+    }
+
+    button.danger {
+      background: var(--danger);
+    }
+
+    .status {
+      margin-top: 12px;
+      min-height: 24px;
+      color: var(--muted);
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
+    .state {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: #eef4ff;
+      color: #175cd3;
+      font-weight: 700;
+    }
+
+    .state.ok {
+      background: #ecfdf3;
+      color: var(--ok);
+    }
+
+    .state.off {
+      background: #fef3f2;
+      color: var(--danger);
+    }
+
+    @media (max-width: 720px) {
+      main {
+        width: min(100% - 20px, 920px);
+        margin: 20px auto;
+      }
+
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      h1 {
+        font-size: 24px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>MiMotion 控制台</h1>
+    <p class="subtitle">管理 GitHub Actions 自动运行，并手动同步测试步数。</p>
+
+    <section class="panel full">
+      <h2>GitHub 访问令牌</h2>
+      <label for="token">Token</label>
+      <input id="token" type="password" autocomplete="off" placeholder="输入有 repo 和 workflow 权限的 GitHub token">
+      <div class="actions">
+        <button id="saveToken">保存到本浏览器</button>
+        <button class="secondary" id="clearToken">清除</button>
+        <a class="button secondary" href="https://github.com/settings/tokens" target="_blank" rel="noreferrer">管理 Token</a>
+      </div>
+      <div class="status" id="tokenStatus"></div>
+    </section>
+
+    <div class="grid">
+      <section class="panel">
+        <h2>自动运行</h2>
+        <p>当前状态：<span class="state" id="workflowState">未读取</span></p>
+        <div class="actions">
+          <button id="refresh">刷新状态</button>
+          <button id="enable">启用</button>
+          <button class="danger" id="disable">停用</button>
+        </div>
+        <div class="status" id="workflowStatus"></div>
+      </section>
+
+      <section class="panel">
+        <h2>手动同步</h2>
+        <label for="step">步数</label>
+        <input id="step" type="number" min="0" max="50000" step="1" placeholder="例如 8200">
+        <div class="actions">
+          <button id="runManual">同步步数</button>
+          <button class="secondary" id="runDaily">按今日累计运行</button>
+        </div>
+        <div class="status" id="runStatus"></div>
+      </section>
+    </div>
+
+    <section class="panel full">
+      <h2>运行记录</h2>
+      <div class="actions">
+        <button id="loadRuns">读取最近记录</button>
+        <a class="button secondary" href="https://github.com/FENGNAN666/mimotion-accessibility-test/actions" target="_blank" rel="noreferrer">打开 Actions</a>
+      </div>
+      <div class="status" id="runs"></div>
+    </section>
+  </main>
+
+  <script>
+    const owner = "FENGNAN666";
+    const repo = "mimotion-accessibility-test";
+    const workflowId = "brush_step.yml";
+    const branch = "master";
+    const apiBase = `https://api.github.com/repos/${owner}/${repo}`;
+
+    const $ = (id) => document.getElementById(id);
+
+    function getToken() {
+      return $("token").value.trim();
+    }
+
+    function headers() {
+      const token = getToken();
+      if (!token) throw new Error("请先输入 GitHub token");
+      return {
+        "Authorization": `Bearer ${token}`,
+        "Accept": "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28"
+      };
+    }
+
+    async function api(path, options = {}) {
+      const response = await fetch(`${apiBase}${path}`, {
+        ...options,
+        headers: {
+          ...headers(),
+          ...(options.headers || {})
+        }
+      });
+      if (response.status === 204) return null;
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.message || `GitHub API 错误：${response.status}`);
+      }
+      return data;
+    }
+
+    function setState(state) {
+      const el = $("workflowState");
+      el.textContent = state || "未知";
+      el.className = "state";
+      if (state === "active") el.classList.add("ok");
+      if (state === "disabled_manually") el.classList.add("off");
+    }
+
+    async function refreshWorkflow() {
+      $("workflowStatus").textContent = "正在读取...";
+      const workflow = await api(`/actions/workflows/${workflowId}`);
+      setState(workflow.state);
+      $("workflowStatus").textContent = `工作流：${workflow.name}\n路径：${workflow.path}`;
+    }
+
+    async function setWorkflow(enabled) {
+      $("workflowStatus").textContent = enabled ? "正在启用..." : "正在停用...";
+      await api(`/actions/workflows/${workflowId}/${enabled ? "enable" : "disable"}`, { method: "PUT" });
+      await refreshWorkflow();
+    }
+
+    async function dispatch(inputs) {
+      $("runStatus").textContent = "正在触发...";
+      await api(`/actions/workflows/${workflowId}/dispatches`, {
+        method: "POST",
+        body: JSON.stringify({ ref: branch, inputs })
+      });
+      $("runStatus").textContent = "已触发，通常几十秒后可在运行记录里看到结果。";
+    }
+
+    async function loadRuns() {
+      $("runs").textContent = "正在读取...";
+      const data = await api(`/actions/runs?per_page=5`);
+      if (!data.workflow_runs.length) {
+        $("runs").textContent = "暂无运行记录。";
+        return;
+      }
+      $("runs").textContent = data.workflow_runs.map((run) => {
+        const conclusion = run.conclusion || "进行中";
+        return `${run.display_title || run.name} | ${run.event} | ${run.status}/${conclusion}\n${run.html_url}`;
+      }).join("\n\n");
+    }
+
+    $("saveToken").addEventListener("click", () => {
+      localStorage.setItem("githubToken", getToken());
+      $("tokenStatus").textContent = "已保存到当前浏览器。";
+    });
+
+    $("clearToken").addEventListener("click", () => {
+      localStorage.removeItem("githubToken");
+      $("token").value = "";
+      $("tokenStatus").textContent = "已清除。";
+    });
+
+    $("refresh").addEventListener("click", () => refreshWorkflow().catch((error) => {
+      $("workflowStatus").textContent = error.message;
+    }));
+
+    $("enable").addEventListener("click", () => setWorkflow(true).catch((error) => {
+      $("workflowStatus").textContent = error.message;
+    }));
+
+    $("disable").addEventListener("click", () => setWorkflow(false).catch((error) => {
+      $("workflowStatus").textContent = error.message;
+    }));
+
+    $("runManual").addEventListener("click", () => {
+      const step = Number($("step").value);
+      if (!Number.isInteger(step) || step < 0 || step > 50000) {
+        $("runStatus").textContent = "请输入 0 到 50000 之间的整数步数。";
+        return;
+      }
+      dispatch({ mode: "manual", step: String(step) }).catch((error) => {
+        $("runStatus").textContent = error.message;
+      });
+    });
+
+    $("runDaily").addEventListener("click", () => dispatch({ mode: "daily", step: "" }).catch((error) => {
+      $("runStatus").textContent = error.message;
+    }));
+
+    $("loadRuns").addEventListener("click", () => loadRuns().catch((error) => {
+      $("runs").textContent = error.message;
+    }));
+
+    $("token").value = localStorage.getItem("githubToken") || "";
+    if ($("token").value) {
+      refreshWorkflow().catch(() => {});
+    }
+  </script>
+</body>
+</html>

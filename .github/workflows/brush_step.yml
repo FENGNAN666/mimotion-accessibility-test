@@ -10,6 +10,14 @@ on:
   watch:
     types: started
   workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Run mode: daily or manual'
+        required: false
+        default: 'daily'
+      step:
+        description: 'Manual step count'
+        required: false
 
 jobs:
   build:
@@ -38,4 +46,10 @@ jobs:
           if [ -z "$step_range" ]; then
             step_range='5000-10000:90,10001-12000:10'
           fi
-          python3 main.py ${user} ${passwd} ${open_get_weather} ${area} ${step_range} daily
+          mode='${{ github.event.inputs.mode }}'
+          manual_step='${{ github.event.inputs.step }}'
+          if [ "$mode" = "manual" ] && [ -n "$manual_step" ]; then
+            python3 main.py ${user} ${passwd} ${open_get_weather} ${area} ${manual_step}-${manual_step} range
+          else
+            python3 main.py ${user} ${passwd} ${open_get_weather} ${area} ${step_range} daily
+          fi
