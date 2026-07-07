@@ -4,7 +4,7 @@ on:
   #pull_request:
   #  branches: [ main ]
   schedule:
-    - cron: '*/30 * * * *'
+    - cron: '*/5 * * * *'
   watch:
     types: started
   workflow_dispatch:
@@ -76,5 +76,7 @@ jobs:
             if [ "${{ github.event_name }}" = "schedule" ]; then
               python3 main.py --should-run "$auto_run_times" "$run_window_minutes" || exit 0
             fi
+            echo "AUTO_RUN_TIMES=${auto_run_times}"
+            echo "RUN_WINDOW_MINUTES=${run_window_minutes}"
             python3 main.py ${user} ${passwd} ${open_get_weather} ${area} ${step_range} daily "$auto_run_times"
           fi
