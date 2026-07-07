@@ -165,7 +165,7 @@ class MiMotion():
         if 0 in (login_token, userid, app_token):
             msg = f"帐号信息: {self.user[3:7]}****{self.user[-4:]}\n修改信息: 登录失败\n"
             print(msg)
-            return msg
+            return {"account": f"{self.user[3:7]}****{self.user[-4:]}", "result": "登录失败", "step": step, "message": msg}
 
         # ---------- 3. 提交步数 ----------
         try:
@@ -189,16 +189,19 @@ class MiMotion():
                 msg = (f"帐号信息: {self.user[3:7]}****{self.user[-4:]}\n"
                        f"修改信息: success\n"
                        f"修改步数: {step}\n")
+                result = "success"
             else:
                 msg = (f"帐号信息: {self.user[3:7]}****{self.user[-4:]}\n"
                        f"修改信息: 失败-{res_json}\n")
+                result = f"失败-{res_json}"
         except Exception as e:
             error_traceback = traceback.format_exc()
             print(error_traceback)
             msg = f"【异常】账号 {self.user[3:7]}****{self.user[-4:]} 提交失败：{e}\n"
+            result = f"异常-{e}"
 
         print(msg)
-        return msg
+        return {"account": f"{self.user[3:7]}****{self.user[-4:]}", "result": result, "step": step, "message": msg}
 
 
 # 获取当前北京时间
@@ -355,10 +358,15 @@ if __name__ == "__main__":
     step_range = parse_step_range(sys.argv[5]) if len(sys.argv) > 5 else None
     step_mode = sys.argv[6] if len(sys.argv) > 6 else "range"
     run_times = sys.argv[7] if len(sys.argv) > 7 else os.getenv("AUTO_RUN_TIMES", "")
+    output_file = os.getenv("MIMOTION_OUTPUT")
     factor = 1
     if open_get_weather == "True":
         factor = get_factor_by_weather(area)
     user_list = users.split('#')
     passwd_list = passwords.split('#')
+    results = []
     for user, passwd in zip(user_list, passwd_list):
-        MiMotion(user, passwd, factor, step_range, step_mode, run_times).run()
+        results.append(MiMotion(user, passwd, factor, step_range, step_mode, run_times).run())
+    if output_file:
+        Path = __import__("pathlib").Path
+        Path(output_file).write_text(json.dumps(results, ensure_ascii=False), encoding="utf-8")

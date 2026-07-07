@@ -17,6 +17,9 @@ on:
         description: 'Manual step count'
         required: false
 
+permissions:
+  contents: write
+
 jobs:
   build:
     if: github.event_name != 'schedule' || vars.AUTO_RUN_ENABLED == 'true'
@@ -24,6 +27,8 @@ jobs:
     steps:
       - name: Checkout codes
         uses: actions/checkout@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
       - name: Update system and install zsh
         run: |
           sudo -E apt-get -qq update
@@ -71,12 +76,48 @@ jobs:
           mode='${{ github.event.inputs.mode }}'
           manual_step='${{ github.event.inputs.step }}'
           if [ "$mode" = "manual" ] && [ -n "$manual_step" ]; then
-            python3 main.py ${user} ${passwd} ${open_get_weather} ${area} ${manual_step}-${manual_step} range
+            MIMOTION_OUTPUT=docs/latest-result.json python3 main.py ${user} ${passwd} ${open_get_weather} ${area} ${manual_step}-${manual_step} range
           else
             if [ "${{ github.event_name }}" = "schedule" ]; then
               python3 main.py --should-run "$auto_run_times" "$run_window_minutes" || exit 0
             fi
             echo "AUTO_RUN_TIMES=${auto_run_times}"
             echo "RUN_WINDOW_MINUTES=${run_window_minutes}"
-            python3 main.py ${user} ${passwd} ${open_get_weather} ${area} ${step_range} daily "$auto_run_times"
+            MIMOTION_OUTPUT=docs/latest-result.json python3 main.py ${user} ${passwd} ${open_get_weather} ${area} ${step_range} daily "$auto_run_times"
           fi
+      - name: Update run history
+        if: always() && hashFiles('docs/latest-result.json') != ''
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          from datetime import datetime, timezone, timedelta
+          from pathlib import Path
+
+          history_path = Path("docs/runs.json")
+          latest_path = Path("docs/latest-result.json")
+          history = []
+          if history_path.exists():
+            try:
+              history = json.loads(history_path.read_text(encoding="utf-8"))
+            except Exception:
+              history = []
+          latest = json.loads(latest_path.read_text(encoding="utf-8"))
+          now = datetime.now(timezone(timedelta(hours=8))).isoformat(timespec="seconds")
+          entry = {
+            "run_id": os.getenv("GITHUB_RUN_ID", ""),
+            "event": os.getenv("GITHUB_EVENT_NAME", ""),
+            "created_at": now,
+            "results": latest,
+            "url": f"{os.getenv('GITHUB_SERVER_URL')}/{os.getenv('GITHUB_REPOSITORY')}/actions/runs/{os.getenv('GITHUB_RUN_ID')}",
+          }
+          history.insert(0, entry)
+          history = history[:50]
+          history_path.write_text(json.dumps(history, ensure_ascii=False, indent=2), encoding="utf-8")
+          latest_path.unlink(missing_ok=True)
+          PY
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add docs/runs.json
+          git commit -m "Update run history" || exit 0
+          git push
