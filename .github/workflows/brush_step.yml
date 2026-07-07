@@ -4,7 +4,7 @@ on:
   #pull_request:
   #  branches: [ main ]
   schedule:
-    - cron: '35 0,3,5,9,12,14 * * *'
+    - cron: '*/30 * * * *'
   watch:
     types: started
   workflow_dispatch:
@@ -60,10 +60,21 @@ jobs:
           if [ -z "$step_range" ]; then
             step_range='5000-10000:90,10001-12000:10'
           fi
+          auto_run_times='${{ vars.AUTO_RUN_TIMES }}'
+          if [ -z "$auto_run_times" ]; then
+            auto_run_times='08:35,11:35,13:35,17:35,20:35,22:35'
+          fi
+          run_window_minutes='${{ vars.RUN_WINDOW_MINUTES }}'
+          if [ -z "$run_window_minutes" ]; then
+            run_window_minutes='18'
+          fi
           mode='${{ github.event.inputs.mode }}'
           manual_step='${{ github.event.inputs.step }}'
           if [ "$mode" = "manual" ] && [ -n "$manual_step" ]; then
             python3 main.py ${user} ${passwd} ${open_get_weather} ${area} ${manual_step}-${manual_step} range
           else
-            python3 main.py ${user} ${passwd} ${open_get_weather} ${area} ${step_range} daily
+            if [ "${{ github.event_name }}" = "schedule" ]; then
+              python3 main.py --should-run "$auto_run_times" "$run_window_minutes" || exit 0
+            fi
+            python3 main.py ${user} ${passwd} ${open_get_weather} ${area} ${step_range} daily "$auto_run_times"
           fi

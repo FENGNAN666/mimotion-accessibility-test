@@ -420,6 +420,10 @@
           <div class="metric-label">天气</div>
           <div class="metric-value" id="weatherSummary">未读取</div>
         </div>
+        <div class="metric">
+          <div class="metric-label">下次自动时间</div>
+          <div class="metric-value" id="nextRunSummary">未读取</div>
+        </div>
       </div>
       <div class="actions">
         <button id="refreshAll">刷新全部</button>
@@ -484,6 +488,34 @@
     </div>
 
     <div class="grid">
+      <section class="panel two-thirds">
+        <h2>自动运行时间点</h2>
+        <label for="autoRunTimes">AUTO_RUN_TIMES，北京时间，逗号分隔</label>
+        <textarea id="autoRunTimes" placeholder="08:35,11:35,13:35,17:35,20:35,22:35"></textarea>
+        <div class="form-row">
+          <div>
+            <label for="runWindowMinutes">RUN_WINDOW_MINUTES</label>
+            <input id="runWindowMinutes" type="number" min="1" max="29" step="1" placeholder="18">
+          </div>
+          <div>
+            <label>检查频率</label>
+            <div class="status">GitHub Actions 每 30 分钟醒来检查一次。只有当前北京时间落在任一时间点前后窗口内，才会真正同步。</div>
+          </div>
+        </div>
+        <div class="actions">
+          <button id="saveSchedule">保存时间点</button>
+          <button class="secondary" id="resetSchedule">填入默认</button>
+        </div>
+        <div class="status" id="scheduleStatus"></div>
+      </section>
+
+      <section class="panel third">
+        <h2>时间点预览</h2>
+        <div class="status" id="schedulePreview">刷新全部后显示。</div>
+      </section>
+    </div>
+
+    <div class="grid">
       <section class="panel">
         <h2>天气与地区</h2>
         <div class="form-row">
@@ -530,14 +562,14 @@ PWD: 小米运动/Zepp 登录密码；多账号密码同样用 # 分隔</div>
 
       <section class="panel">
         <h2>定时规则</h2>
-        <div class="status">当前 schedule:
-UTC 00:35 / 03:35 / 05:35 / 09:35 / 12:35 / 14:35
+        <div class="status">当前底层 schedule:
+每 30 分钟检查一次
 
-北京时间:
-08:35 / 11:35 / 13:35 / 17:35 / 20:35 / 22:35
+实际自动同步:
+由 AUTO_RUN_TIMES 和 RUN_WINDOW_MINUTES 决定
 
 说明:
-GitHub Actions 的 cron 使用 UTC。自动定时是否执行由 AUTO_RUN_ENABLED 控制。</div>
+GitHub Actions 的 cron 使用 UTC，网页里填写的是北京时间。自动定时是否执行由 AUTO_RUN_ENABLED 控制。</div>
       </section>
     </div>
 
@@ -557,7 +589,7 @@ GitHub Actions 的 cron 使用 UTC。自动定时是否执行由 AUTO_RUN_ENABLE
           <h3>配置说明</h3>
           <ul>
             <li><code>USER</code> 和 <code>PWD</code> 存在 Secrets；页面只能覆盖，不能读取明文。</li>
-            <li><code>AUTO_RUN_ENABLED</code>、<code>STEP_RANGE</code>、<code>OPEN_GET_WEATHER</code>、<code>AREA</code> 存在 Variables，可读取和修改。</li>
+            <li><code>AUTO_RUN_ENABLED</code>、<code>AUTO_RUN_TIMES</code>、<code>RUN_WINDOW_MINUTES</code>、<code>STEP_RANGE</code>、<code>OPEN_GET_WEATHER</code>、<code>AREA</code> 存在 Variables，可读取和修改。</li>
             <li>多账号格式：账号和密码都用 <code>#</code> 分隔，并保持数量一致。</li>
             <li>天气关闭时，<code>AREA</code> 建议为 <code>NO</code>。</li>
           </ul>
@@ -590,6 +622,8 @@ GitHub Actions 的 cron 使用 UTC。自动定时是否执行由 AUTO_RUN_ENABLE
     const apiBase = `https://api.github.com/repos/${owner}/${repo}`;
     const defaults = {
       AUTO_RUN_ENABLED: "true",
+      AUTO_RUN_TIMES: "08:35,11:35,13:35,17:35,20:35,22:35",
+      RUN_WINDOW_MINUTES: "18",
       STEP_RANGE: "5000-10000:90,10001-12000:10",
       OPEN_GET_WEATHER: "False",
       AREA: "NO"
@@ -654,23 +688,76 @@ GitHub Actions 的 cron 使用 UTC。自动定时是否执行由 AUTO_RUN_ENABLE
       }
     }
 
+    function parseTimes(value) {
+      return value.split(",")
+        .map((item) => item.trim())
+        .filter(Boolean)
+        .map((item) => {
+          const match = item.match(/^(\d{1,2}):(\d{2})$/);
+          if (!match) throw new Error(`时间格式错误：${item}`);
+          const hour = Number(match[1]);
+          const minute = Number(match[2]);
+          if (hour > 23 || minute > 59) throw new Error(`时间超出范围：${item}`);
+          return { label: `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`, minutes: hour * 60 + minute };
+        })
+        .sort((a, b) => a.minutes - b.minutes);
+    }
+
+    function getBeijingNow() {
+      const parts = new Intl.DateTimeFormat("zh-CN", {
+        timeZone: "Asia/Shanghai",
+        hour12: false,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit"
+      }).formatToParts(new Date()).reduce((acc, item) => {
+        acc[item.type] = item.value;
+        return acc;
+      }, {});
+      return {
+        label: `${parts.year}-${parts.month}-${parts.day} ${parts.hour}:${parts.minute}`,
+        minutes: Number(parts.hour) * 60 + Number(parts.minute)
+      };
+    }
+
+    function describeSchedule(timesValue, windowValue) {
+      const times = parseTimes(timesValue);
+      const now = getBeijingNow();
+      const next = times.find((time) => time.minutes >= now.minutes) || times[0];
+      const dayText = next.minutes >= now.minutes ? "今天" : "明天";
+      const windowText = `${windowValue || defaults.RUN_WINDOW_MINUTES} 分钟`;
+      return {
+        next: `${dayText} ${next.label}`,
+        text: `当前北京时间：${now.label}\n自动时间点：${times.map((time) => time.label).join(" / ")}\n命中窗口：前后 ${windowText}\n下一次：${dayText} ${next.label}`
+      };
+    }
+
     async function refreshAll() {
       $("overviewStatus").textContent = "正在读取仓库配置...";
       const workflow = await api(`/actions/workflows/${workflowId}`);
-      const [autoRun, stepRange, weatherEnabled, area] = await Promise.all([
+      const [autoRun, stepRange, weatherEnabled, area, autoRunTimes, runWindowMinutes] = await Promise.all([
         getVariable("AUTO_RUN_ENABLED", defaults.AUTO_RUN_ENABLED),
         getVariable("STEP_RANGE", defaults.STEP_RANGE),
         getVariable("OPEN_GET_WEATHER", defaults.OPEN_GET_WEATHER),
-        getVariable("AREA", defaults.AREA)
+        getVariable("AREA", defaults.AREA),
+        getVariable("AUTO_RUN_TIMES", defaults.AUTO_RUN_TIMES),
+        getVariable("RUN_WINDOW_MINUTES", defaults.RUN_WINDOW_MINUTES)
       ]);
+      const schedule = describeSchedule(autoRunTimes, runWindowMinutes);
 
       setState($("workflowState"), workflow.state);
       setState($("autoState"), autoRun === "true" ? "已启用" : "已停用", "已启用");
       $("rangeSummary").textContent = stepRange;
       $("weatherSummary").textContent = `${weatherEnabled} / ${area}`;
+      $("nextRunSummary").textContent = schedule.next;
       $("stepRange").value = stepRange;
       $("weatherEnabled").value = weatherEnabled === "True" ? "True" : "False";
       $("area").value = area;
+      $("autoRunTimes").value = autoRunTimes;
+      $("runWindowMinutes").value = runWindowMinutes;
+      $("schedulePreview").textContent = schedule.text;
       $("overviewStatus").textContent = `已读取：${workflow.name}\n路径：${workflow.path}\n手动同步：${workflow.state === "active" ? "可用" : "不可用，请先启用 workflow"}`;
     }
 
@@ -801,6 +888,28 @@ GitHub Actions 的 cron 使用 UTC。自动定时是否执行由 AUTO_RUN_ENABLE
     $("weatherOff").addEventListener("click", () => {
       $("weatherEnabled").value = "False";
       $("area").value = "NO";
+    });
+
+    $("saveSchedule").addEventListener("click", async () => {
+      try {
+        const times = parseTimes($("autoRunTimes").value.trim()).map((time) => time.label).join(",");
+        const windowMinutes = String(Math.max(1, Math.min(29, Number($("runWindowMinutes").value || defaults.RUN_WINDOW_MINUTES))));
+        $("scheduleStatus").textContent = "正在保存自动运行时间点...";
+        await Promise.all([
+          setVariable("AUTO_RUN_TIMES", times),
+          setVariable("RUN_WINDOW_MINUTES", windowMinutes)
+        ]);
+        $("scheduleStatus").textContent = "自动运行时间点已保存。";
+        await refreshAll();
+      } catch (error) {
+        $("scheduleStatus").textContent = error.message;
+      }
+    });
+
+    $("resetSchedule").addEventListener("click", () => {
+      $("autoRunTimes").value = defaults.AUTO_RUN_TIMES;
+      $("runWindowMinutes").value = defaults.RUN_WINDOW_MINUTES;
+      $("schedulePreview").textContent = describeSchedule(defaults.AUTO_RUN_TIMES, defaults.RUN_WINDOW_MINUTES).text;
     });
 
     $("loadRuns").addEventListener("click", () => loadRuns().catch((error) => {

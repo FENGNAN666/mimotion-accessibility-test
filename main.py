@@ -2,6 +2,7 @@
 import datetime
 import json
 import math
+import os
 import random
 import re
 import sys
@@ -16,7 +17,7 @@ import requests
 class MiMotion():
     name = "小米运动"
 
-    def __init__(self, user, password, factor=1, step_range=None, step_mode="range"):
+    def __init__(self, user, password, factor=1, step_range=None, step_mode="range", run_times=None):
         user, third_name = self.process_user(user)
         self.user = user
         self.third_name = third_name
@@ -24,6 +25,7 @@ class MiMotion():
         self.factor = factor
         self.step_range = step_range
         self.step_mode = step_mode
+        self.run_times = run_times
 
     @staticmethod
     def process_user(user):
@@ -132,7 +134,7 @@ class MiMotion():
     # 获取当前时间对应的最大和最小步数
     def get_step_by_time(self):
         if self.step_mode == "daily":
-            step = get_daily_step()
+            step = get_daily_step(self.run_times)
             return step, step
 
         if self.step_range:
@@ -271,20 +273,60 @@ def get_daily_total_step(current_time):
         return rng.randint(5000, 10000)
     return rng.randint(10001, 12000)
 
-def get_daily_step():
+def parse_run_times(value):
+    if not value:
+        value = "08:35,11:35,13:35,17:35,20:35,22:35"
+
+    result = []
+    for part in value.split(","):
+        part = part.strip()
+        match = re.fullmatch(r"(\d{1,2}):(\d{2})", part)
+        if not match:
+            continue
+        hour, minute = map(int, match.groups())
+        if 0 <= hour <= 23 and 0 <= minute <= 59:
+            result.append((hour + minute / 60, part))
+    return sorted(result)
+
+def should_run_now(run_times, window_minutes):
+    current_time = get_beijing_time()
+    current_minutes = current_time.hour * 60 + current_time.minute
+    half_window = max(int(window_minutes), 1)
+    for _, label in parse_run_times(run_times):
+        hour, minute = map(int, label.split(":"))
+        target_minutes = hour * 60 + minute
+        if abs(current_minutes - target_minutes) <= half_window:
+            print(f"当前北京时间 {current_time.strftime('%H:%M')} 命中自动运行时间点 {label}")
+            return True
+    print(f"当前北京时间 {current_time.strftime('%H:%M')} 未命中自动运行时间点：{run_times}")
+    return False
+
+def get_daily_step(run_times=None):
     current_time = get_beijing_time()
     total_step = get_daily_total_step(current_time)
     hour = current_time.hour + current_time.minute / 60
-    schedule = [
-        (0, 0.03),
-        (8.5, 0.24),
-        (11.5, 0.28),
-        (13.83, 0.48),
-        (17.5, 0.58),
-        (20.5, 0.88),
-        (22.5, 1.0),
-        (24, 1.0),
-    ]
+    times = parse_run_times(run_times)
+    if times:
+        if len(times) == 1:
+            schedule = [(0, 0.12), (times[0][0], 1.0), (24, 1.0)]
+        else:
+            ratios = [0.38, 0.48, 0.58, 0.72, 0.9, 1.0]
+            schedule = [(0, 0.10)]
+            for index, (run_hour, _) in enumerate(times):
+                ratio_index = min(index, len(ratios) - 1)
+                schedule.append((run_hour, ratios[ratio_index]))
+            schedule.append((24, 1.0))
+    else:
+        schedule = [
+            (0, 0.10),
+            (8.58, 0.38),
+            (11.58, 0.48),
+            (13.58, 0.58),
+            (17.58, 0.72),
+            (20.58, 0.90),
+            (22.58, 1.0),
+            (24, 1.0),
+        ]
 
     ratio = schedule[-1][1]
     for (start_hour, start_ratio), (end_hour, end_ratio) in zip(schedule, schedule[1:]):
@@ -294,11 +336,16 @@ def get_daily_step():
             break
 
     seed = int(current_time.strftime("%Y%m%d%H"))
-    jitter = random.Random(seed).randint(-120, 120)
+    jitter = random.Random(seed).randint(-60, 120)
     step = int(total_step * ratio) + jitter
     return max(0, min(step, total_step))
 
 if __name__ == "__main__":
+    if len(sys.argv) >= 2 and sys.argv[1] == "--should-run":
+        run_times = sys.argv[2] if len(sys.argv) > 2 else ""
+        window_minutes = int(sys.argv[3]) if len(sys.argv) > 3 else 18
+        sys.exit(0 if should_run_now(run_times, window_minutes) else 78)
+
     users = sys.argv[1]
     passwords = sys.argv[2]
     # 开启根据地区天气情况降低步数（默认关闭）
@@ -307,10 +354,11 @@ if __name__ == "__main__":
     area = sys.argv[4]
     step_range = parse_step_range(sys.argv[5]) if len(sys.argv) > 5 else None
     step_mode = sys.argv[6] if len(sys.argv) > 6 else "range"
+    run_times = sys.argv[7] if len(sys.argv) > 7 else os.getenv("AUTO_RUN_TIMES", "")
     factor = 1
     if open_get_weather == "True":
         factor = get_factor_by_weather(area)
     user_list = users.split('#')
     passwd_list = passwords.split('#')
     for user, passwd in zip(user_list, passwd_list):
-        MiMotion(user, passwd, factor, step_range, step_mode).run()
+        MiMotion(user, passwd, factor, step_range, step_mode, run_times).run()
