@@ -1,5 +1,19 @@
 [
   {
+    "run_id": "30741513328",
+    "event": "schedule",
+    "created_at": "2026-08-02T17:19:16+08:00",
+    "results": [
+      {
+        "account": "1760****0176",
+        "result": "success",
+        "step": "6748",
+        "message": "帐号信息: 1760****0176\n修改信息: success\n修改步数: 6748\n"
+      }
+    ],
+    "url": "https://github.com/FENGNAN666/mimotion-accessibility-test/actions/runs/30741513328"
+  },
+  {
     "run_id": "30732528297",
     "event": "schedule",
     "created_at": "2026-08-02T12:32:07+08:00",
