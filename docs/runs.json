@@ -1,5 +1,19 @@
 [
   {
+    "run_id": "31865267580",
+    "event": "schedule",
+    "created_at": "2026-08-15T12:47:06+08:00",
+    "results": [
+      {
+        "account": "1760****0176",
+        "result": "success",
+        "step": "5387",
+        "message": "帐号信息: 1760****0176\n修改信息: success\n修改步数: 5387\n"
+      }
+    ],
+    "url": "https://github.com/FENGNAN666/mimotion-accessibility-test/actions/runs/31865267580"
+  },
+  {
     "run_id": "31862500667",
     "event": "schedule",
     "created_at": "2026-08-15T11:42:27+08:00",
@@ -684,19 +698,5 @@
       }
     ],
     "url": "https://github.com/FENGNAN666/mimotion-accessibility-test/actions/runs/29977737645"
-  },
-  {
-    "run_id": "29919040252",
-    "event": "schedule",
-    "created_at": "2026-07-22T20:18:21+08:00",
-    "results": [
-      {
-        "account": "1760****0176",
-        "result": "success",
-        "step": "7409",
-        "message": "帐号信息: 1760****0176\n修改信息: success\n修改步数: 7409\n"
-      }
-    ],
-    "url": "https://github.com/FENGNAN666/mimotion-accessibility-test/actions/runs/29919040252"
   }
 ]
